@@ -50,7 +50,7 @@ header = html.H1(
 region_picker = dcc.RadioItems(
     ["north", "east", "south", "west", "all"],
     "north",
-    id="region_picker",
+    id="region-picker",
     inline=True
 )
 region_picker_wrapper = html.Div(
