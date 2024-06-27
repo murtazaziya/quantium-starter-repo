@@ -2,7 +2,7 @@
 # visit http://127.0.0.1:8050/ in your web browser.
 
 
-from dash import Dash, dcc, html
+from dash import Dash, dcc, html, callback, Input, Output
 import plotly.express as px
 import pandas as pd
 
@@ -39,11 +39,28 @@ app.layout = html.Div(style={'backgroundColor': colors['background']}, children=
         'color': colors['text']
     }),
 
+    html.Br(),
+    html.Label('Radio Items'),
+    dcc.RadioItems(df['region'].unique(), id='radio-items', style={'padding': 10, 'flex': 1, 'color': colors['text']
+    }),
+
     dcc.Graph(
-        id='example-graph-2',
+        id='line-plot',
         figure=fig
     )
 ])
+
+@callback(
+    Output('line-plot', 'figure'),
+    Input('radio-items', 'value'))
+def update_figure(region):
+    filtered_df = df[df['region'] == region]
+
+    fig = px.line(filtered_df, x="date", y="sales", title="Sales over the years")
+
+    fig.update_layout(transition_duration=500)
+
+    return fig
 
 if __name__ == '__main__':
     app.run(debug=True)
