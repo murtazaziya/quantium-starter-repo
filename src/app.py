@@ -1,67 +1,99 @@
-    # Run this app with `python app.py` and
-# visit http://127.0.0.1:8050/ in your web browser.
+import pandas
+from dash import Dash, html, dcc, Input, Output
 
+from plotly.express import line
 
-from dash import Dash, dcc, html, callback, Input, Output
-import plotly.express as px
-import pandas as pd
-
-app = Dash(__name__)
-
-colors = {
-    'background': '#111111',
-    'text': '#7FDBFF'
+# the path to the formatted data file
+DATA_PATH = "./data/data.csv"
+COLORS = {
+    "primary": "#FEDBFF",
+    "secondary": "#D598EB",
+    "font": "#522A61"
 }
 
-# assume you have a "long-form" data frame
-# see https://plotly.com/python/px-arguments/ for more options
-df = pd.read_csv('data/data.csv')
+# load in data
+data = pandas.read_csv(DATA_PATH)
+data = data.sort_values(by="date")
 
-fig = px.line(df, x="date", y="sales", title="Sales over the years")
+# initialize dash
+app = Dash(__name__)
 
-fig.update_layout(
-    plot_bgcolor=colors['background'],
-    paper_bgcolor=colors['background'],
-    font_color=colors['text']
+
+# create the visualization
+def generate_figure(chart_data):
+    line_chart = line(chart_data, x="date", y="sales", title="Pink Morsel Sales")
+    line_chart.update_layout(
+        plot_bgcolor=COLORS["secondary"],
+        paper_bgcolor=COLORS["primary"],
+        font_color=COLORS["font"]
+    )
+    return line_chart
+
+
+visualization = dcc.Graph(
+    id="visualization",
+    figure=generate_figure(data)
 )
 
-app.layout = html.Div(style={'backgroundColor': colors['background']}, children=[
-    html.H1(
-        children='Soul Foods',
-        style={
-            'textAlign': 'center',
-            'color': colors['text']
-        }
-    ),
+# create the header
+header = html.H1(
+    "Pink Morsel Visualizer",
+    id="header",
+    style={
+        "background-color": COLORS["secondary"],
+        "color": COLORS["font"],
+        "border-radius": "20px"
+    }
+)
 
-    html.Div(children='Were sales higher before or after the Pink Morsel price increase on the 15th of January, 2021?', style={
-        'textAlign': 'center',
-        'color': colors['text']
-    }),
+# region picker
+region_picker = dcc.RadioItems(
+    ["north", "east", "south", "west", "all"],
+    "north",
+    id="region_picker",
+    inline=True
+)
+region_picker_wrapper = html.Div(
+    [
+        region_picker
+    ],
+    style={
+        "font-size": "150%"
+    }
+)
 
-    html.Br(),
-    html.Label('Radio Items'),
-    dcc.RadioItems(df['region'].unique(), id='radio-items', style={'padding': 10, 'flex': 1, 'color': colors['text']
-    }),
 
-    dcc.Graph(
-        id='line-plot',
-        figure=fig
-    )
-])
+# define the region picker callback
+@app.callback(
+    Output(visualization, "figure"),
+    Input(region_picker, "value")
+)
+def update_graph(region):
+    # filter the dataset
+    if region == "all":
+        trimmed_data = data
+    else:
+        trimmed_data = data[data["region"] == region]
 
-@callback(
-    Output('line-plot', 'figure'),
-    Input('radio-items', 'value'))
-def update_figure(region):
-    filtered_df = df[df['region'] == region]
+    # generate a new line chart with the filtered data
+    figure = generate_figure(trimmed_data)
+    return figure
 
-    fig = px.line(filtered_df, x="date", y="sales", title="Sales over the years")
 
-    fig.update_layout(transition_duration=500)
+# define the app layout
+app.layout = html.Div(
+    [
+        header,
+        visualization,
+        region_picker_wrapper
+    ],
+    style={
+        "textAlign": "center",
+        "background-color": COLORS["primary"],
+        "border-radius": "20px"
+    }
+)
 
-    return fig
-
+# this is only true if the module is executed as the program entrypoint
 if __name__ == '__main__':
-    app.run(debug=True)
-
+    app.run_server(debug=True)
